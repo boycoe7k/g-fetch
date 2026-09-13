@@ -1,15 +1,1 @@
-export default async function handler(req, res) {
-  const target = req.query.url;
-  if (!target) return res.status(400).json({ error: "url is required." });
-
-  let url;
-  try { url = new URL(target); } catch {
-    return res.status(400).json({ error: "Invalid URL." });
-  }
-
-  if (url.protocol !== "https:" || url.hostname !== "github.com" && !url.hostname.endsWith(".github.com")) {
-    return res.status(400).json({ error: "Only GitHub download URLs are allowed." });
-  }
-
-  res.redirect(302, url.toString());
-}
+export default async function handler(req,res){const{repo,tag,asset}=req.query;if(!repo||!/^[^/]+\/[^/]+$/.test(repo)||!tag||!asset)return res.status(400).json({error:"Missing repo, tag or asset"});const h={Accept:"application/vnd.github+json","User-Agent":"GHFetch"};if(process.env.GITHUB_TOKEN)h.Authorization=`Bearer ${process.env.GITHUB_TOKEN}`;try{const r=await fetch(`https://api.github.com/repos/${repo}/releases/tags/${encodeURIComponent(tag)}`,{headers:h}),d=await r.json();if(!r.ok)return res.status(r.status).json({error:d.message||"Release not found"});const a=d.assets?.find(x=>x.name===asset);if(!a)return res.status(404).json({error:"Asset not found"});const f=await fetch(a.browser_download_url);if(!f.ok)return res.status(f.status).json({error:"Asset download failed"});res.setHeader("Content-Type",f.headers.get("content-type")||"application/octet-stream");res.setHeader("Content-Disposition",`attachment; filename="${a.name.replaceAll('"',"")}"`);return res.status(200).send(Buffer.from(await f.arrayBuffer()))}catch{return res.status(500).json({error:"Unable to download asset"})}}

@@ -1,0 +1,1 @@
+export default async function handler(req,res){const{repo,ref}=req.query;if(!repo||!/^[^/]+\/[^/]+$/.test(repo))return res.status(400).json({error:"Use repo=owner/name"});return res.redirect(302,`https://github.com/${repo}/archive/refs/heads/${encodeURIComponent(ref||"main")}.zip`) }
